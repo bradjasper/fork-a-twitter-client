@@ -35,7 +35,7 @@
  
 */
  
-var API_KEY = "tlgTd1dcnnFb5oc8DQtMQ";
+var API_KEY = "865n4pU66857sfV0NuW5xg";
  
 //----------------------------------------------------------------------
 // Initialization
@@ -49,37 +49,26 @@ require("apollo:jquery-binding").install();
  
 // We'll also use various methods from the common module (supplant, ...)
 var common = require("apollo:common");
+var http = require("apollo:http");
  
 var tweeting_button = $("#tweeting_button");
 var status_el = $("#status");
 var counter = $("#tweeting_status");
 
 //----------------------------------------------------------------------
-// main program loop
- 
-// Show the twitter connect button:
-T("#login").connectButton();
-// Run our application logic in an endless loop:
-while (true) {
-  try {
-    main();
-  }
-  catch(e) {
-    alert("Error:"+e);
-  }
-}
-
-//----------------------------------------------------------------------
 // main application logic:
  
 function main() {
+
+  T("#login").connectButton();
+
   // First wait until we're connected:
   if (!T.isConnected())
     T.waitforEvent("authComplete");
   $("#login").hide();
   $("#welcome").hide();
   $("#timeline").empty();
-  
+
   try {
     // Let's set the last tweet and the background based on the
     // user's prefs:
@@ -143,6 +132,66 @@ function setLatestTweet(tweet) {
 function update_counter() {
   counter.text(140 - status_el.val().length);
 }
+
+function checkTags() {
+  if (!window["localStorage"]) return;
+
+  $(".tags[unchecked='unchecked']").each(function(i, element) {
+
+    var $element   = $(element);
+    var screenname = $element.parent().find(".screenname").text();
+    var tags       = localStorage["skillsto_" + screenname];
+
+    if (tags === undefined) {
+      console.log("Hitting tags database for user " + screenname);
+
+      var skills_url = "http://www.skills.to/api/v1/user/" + encodeURI(screenname);
+      try {
+        var data = http.jsonp(skills_url, {cbfield: 'callback'})
+      } catch (e) {
+        console.log("error on jsonp");
+        var data = {tags: []};
+      }
+      tags = []
+
+      for (var i = 0; i < data.tags.length; i++) {
+        tags.push(data.tags[i].tag_text);
+      }
+
+      localStorage["skillsto_" + screenname] = tags.join(", ");
+    }
+
+    $element.removeAttr("unchecked");
+    if (tags) {
+      $element.text(tags).attr("title", tags);
+    }
+
+
+  })
+}
+
+function set_custom_screenname(node) {
+
+  var $node      = $(node);
+  var screenname = $node.attr("data-screenname");
+  var custom     = prompt("Enter a custom username for '" + screenname + "'");
+  
+  if (custom.match(/[a-zA-Z0-9]/)) {
+    localStorage["csn_" + screenname] = custom;
+    $("a[data-screenname='" + screenname + "']").text(custom)
+  }
+}
+
+// Given a screenname, return a custom one we've set in localStorage
+function get_custom_screenname(screenname) {
+
+  if (!window["localStorage"]) return screenname;
+
+  var customScreenname = localStorage["csn_" + screenname];
+
+  return customScreenname ? customScreenname : screenname;
+}
+ 
 
 function ui_mute_loop() {
   if (!window["localStorage"]) return;
@@ -212,7 +261,8 @@ function showTweet(tweet, append) {
           <img src='{image}' width='48' height='48'/>
         </span>
         <span class='tweet_body'>
-          <span class='screenname'>{screenname}</span>
+          <a title='{screenname}' href='http://twitter.com/{screenname}' class='screenname' target='_blank'>{screenname}</a>
+          <span class='tags' unchecked='unchecked'></span>
           <span class='content'>{text}</span>
           <span class='meta'>{meta}</span>
         </span>
@@ -226,7 +276,8 @@ function showTweet(tweet, append) {
       meta: date_string
     }));
 }
- 
+
+
 // Helper to fetch new tweets:
 function fetch_tweets(params) {
   try {
@@ -250,17 +301,24 @@ function update_timeline_loop() {
   // Run an endless loop:
   while (true) {
     // Fetch tweets from twitter:
+    var since_id = $(".tweet_wrapper:first").attr("tweetid");
     var timeline = fetch_tweets({
       include_entities: true,
       count: 30,
-      since_id: $(".tweet_wrapper:first").attr("tweetid")
+      since_id: since_id
     });
  
     if (timeline && timeline.length) {
       // Prepend tweets to timeline:
       for (var i = timeline.length-1, tweet; tweet = timeline[i]; --i)
-        showTweet(tweet, false);
+
+        // For some reason Twitter is returning the since_id in the results...filter this out
+        if (tweet.id != since_id) {
+          showTweet(tweet, false);
+        }
     }
+
+    checkTags();
 
     waitfor {
       // Twitter is rate-limited to ~150calls/h. Wait for 60 seconds
@@ -317,6 +375,8 @@ function show_more_loop() {
       for (var i = 0, tweet; tweet = timeline[i]; ++i)
         showTweet(tweet, true);
     }
+
+    checkTags();
   }
 }
  
@@ -324,7 +384,7 @@ function show_more_loop() {
 // clicked and sends out a tweet if it is:
 function tweet_loop() {
   try {
-    $(".tweet_box").show();
+    //$(".tweet_box").show();
     while (true) {
       tweeting_button.$click();
       tweeting_button.attr("disabled", "disabled");
@@ -334,6 +394,7 @@ function tweet_loop() {
         status_el.val("");
         showTweet(tweet);
         setLatestTweet(tweet);
+        checkTags();
       }
       catch (e) {
         alert("Error posting: " + e.response.error);
@@ -364,3 +425,7 @@ function waitfor_signout() {
     $("#login").show();
   }
 }
+
+exports.update_counter = update_counter;
+exports.main = main;
+exports.$ = $;

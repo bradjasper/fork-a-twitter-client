@@ -19,8 +19,18 @@
   You can hotlink to http://code.onilabs.com/apollo/0.11/oni-apollo.js if you
   want:
 --> 
-<script src="http://code.onilabs.com/apollo/0.11/oni-apollo.js"></script> 
-<script>require("app");</script>
+<script src="http://code.onilabs.com/apollo/latest/oni-apollo.js"></script> 
+<script type="text/sjs">
+  window.app = require("app");
+
+  try {
+    app.main();
+  }
+  catch(e) {
+    alert("Error:"+e);
+  }
+
+</script>
 <link rel="stylesheet" href="/app.css" />
 </head> 
 <body> 
@@ -30,13 +40,13 @@
     <div id="login"></div> 
     <div id="logout"></div> 
   </div> 
-  <div id="title_bar">Twitter Client</div> 
+  <div id="title_bar">Twitter Feed</div> 
 </div> 
 <div id="wrapper"> 
   <div class="tweet_box"> 
     <h2>What's happening?</h2> 
     <div id="info"> 
-      <textarea id="status" onkeyup="update_counter(this)"></textarea> 
+      <textarea id="status" onkeyup="app.update_counter(this)"></textarea> 
       <span id="latest"><strong>latest: </strong><span></span></span> 
       <span id="tweeting_button_container"> 
         <span id="tweeting_status"></span> 

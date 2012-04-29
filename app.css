@@ -126,9 +126,11 @@ body, textarea, input {
   min-height:58px;
   display:block;
   word-wrap: break-word;
+  position: relative;
+  padding-top: 20px;
 }
 .tweet_body .content {
-  color: #444 
+  color: #444;
 }
 .tweet_body .meta {
   display:block;
@@ -141,9 +143,27 @@ body, textarea, input {
 .tweet_body .screenname {
   color: #222;
   line-height:19px;
-  display:block;
   font-weight:bold;
+  text-decoration: none;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
+
+.tweet_body .tags {
+  color: #666;
+  font-size: 11px;
+  position: absolute;
+  background: white;
+  top: 0;
+  right: 0;
+  height: 11px;
+  overflow: hidden;
+  padding: 3px;
+  text-align: right;
+  margin-left: 60px;
+}
+
 .loading_more {
   text-align:center;
   color: #666;
